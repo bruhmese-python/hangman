@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<title>hangman</title>
+		<style type="text/css" media="screen">
+			body,html{
+				font-variant-ligatures : no-common-ligatures;
+				font-family : monospace;
+				font-weight : bolder;
+				font-size : 3vh;
+
+			}
+			.letter-class{
+				border: 2px solid #383838;
+				border-radius:3px;
+				background-color:white;
+				padding:1em;
+				margin-right:5px;
+			}
+			.result-class{
+				height:50px;
+			}
+			.container {  
+				height:100vh;
+				display: grid;
+				grid-template-columns: 1fr;
+				grid-template-rows: 1fr 1fr 1fr;
+				gap: 0px 0px;
+				grid-auto-flow: row;
+				grid-template-areas:
+				  "."
+				  "main"
+				  ".";
+			}
+			.main { grid-area: main; }
+			a{ text-decoration:none;}
+			a:visited{ text-decoration:none;}
+			a:link{ text-decoration:none;}
+
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="main">
+				<div id="result" class="result-class"> </div>
+				<div id="words" style="height:50px;"> </div>
+				<div id="hangman-container"> </div>
+			</div>
+		</div>
+		<script charset="utf-8">
+			let game_over=false;
+			let hang_state = 0;
+			let div_arr = [];
+			let hangman_container = document.getElementById('hangman-container');
+			let result = document.getElementById('result');
+			let img;
+			let hang_word='';
+			let hang_word_mask;
+			var isAlpha = function(ch){
+			  return /^[A-Z]$/i.test(ch);
+			}
+
+			const imageUrls = [
+			    "./images/1.jpg",
+			    "./images/2.jpg",
+			    "./images/3.jpg",
+			    "./images/4.jpg",
+			    "./images/5.jpg",
+			    "./images/6.jpg",
+			    "./images/7.jpg",
+			    "./images/8.jpg",
+			    "./images/9.jpg",
+			    "./images/10.jpg",
+			    "./images/11.jpg",
+			    "./images/12.jpg"
+			];
+
+			function reload(){
+				game_over=false;
+				hang_state = 0;
+				img.src=imageUrls[0];
+				for (var i = 0; i < div_arr.length; i++) { div_arr[i].innerHTML = ''; }
+				fetchWord();
+			}
+
+			function preloadImages(urls) {
+			    urls.forEach(function(url) {
+				var img = new Image();
+				img.src = url;
+			    });
+			}
+
+			preloadImages(imageUrls);
+
+		        function fetchWord() {
+			    const apiUrl = "https://random-word-api.herokuapp.com/word?length=10";
+
+			    fetch(apiUrl)
+				.then(response => response.json())
+				.then(data => {
+				    hang_word = data[0];
+				    hang_word_mask = hang_word;
+				})
+				.catch(error => {
+				    console.error("Error fetching word:", error);
+				});
+			}
+			function createLetterDivs(word) {
+				let letter_divs=[];
+
+			    for (var i = 0; i < word.length; i++) {
+				var div = document.createElement("span");
+				div.classList.add("letter-class");
+				div.innerHTML = ' ';
+
+				let word_block = document.getElementById('words');
+				word_block.append(div); 
+				letter_divs.push(div);
+			    }
+
+			    return letter_divs; 
+			}
+			function replaceCharWithSpace(charToReplace) {
+			    var changed = false;
+			    var chars = hang_word_mask.split('');
+			    for (var i = 0; i < chars.length; i++) {
+				if (chars[i] === charToReplace) {
+				    chars[i] = ' ';
+				    div_arr[i].innerHTML = charToReplace;
+				    changed=true;
+				}
+			    }
+			    hang_word_mask = chars.join('');
+			    return changed;
+			}
+
+			fetchWord();	
+			setTimeout(function() {
+				div_arr = createLetterDivs(hang_word);	
+
+				img = document.createElement("img");
+				img.src="./images/1.jpg";
+				img.id="hangman";
+				hangman_container.append(img);
+			}, 2000); 
+
+			document.addEventListener('keydown', function(event) {
+				if(!game_over && hang_word != ''){
+					if (event.key !== undefined && isAlpha(event.key)) {
+						if(![...hang_word_mask].every(function(c){return c==' ';})){
+							if(!replaceCharWithSpace(event.key)){
+								hang_state+=1;	
+								if(imageUrls.length > hang_state )
+									img.src = imageUrls[hang_state];
+								else{
+									result.innerHTML = `You got HANGED by ${hang_word}!!`;
+									result.innerHTML += '<span><a onclick="window.location.reload()" href="#">⟳</a></span>';
+									game_over=true;
+								}
+							}
+							if([...hang_word_mask].every(function(c){return c==' ';})) {
+								result.innerHTML = "You escaped death"
+								result.innerHTML += '<span><a onclick="window.location.reload()" href="#">⟳</a></span>';
+								game_over=true;
+							}
+						}
+					}
+				}
+			});
+		</script>
+	</body>
+</html>
